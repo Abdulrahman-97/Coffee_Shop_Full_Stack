@@ -11,18 +11,18 @@ app = Flask(__name__)
 setup_db(app)
 CORS(app)
 
-db_drop_and_create_all()
+# db_drop_and_create_all()
 
 ## ROUTES
 
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
-'''
+    '''
     This function handles requesting all available drinks in a short form
     Permission: Public
-'''
+    '''
     drinks = Drink.query.all()
-
+    
     formatted_drinks = [drink.short() for drink in drinks]
 
     return jsonify({
@@ -34,12 +34,12 @@ def get_drinks():
 @app.route('/drinks-detail', methods=['GET'])
 @requires_auth('get:drinks-detail')
 def get_detailed_drinks(payload):
-'''
+    '''
     This function handles requesting all available drinks with all information 
     Permission: get:drinks-detail
-'''
+    '''
     drinks = Drink.query.all()
-
+    
     formatted_drinks = [drink.long() for drink in drinks]
     # if drinks:
     #     formatted_drinks = [drink.long() for drink in drinks]
@@ -54,10 +54,10 @@ def get_detailed_drinks(payload):
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
 def add_drink(payload):
-'''
+    '''
     This function handles inserting a new drink. 
     Permission: post:drinks
-'''
+    '''
     data = request.get_json()
     is_data_valid = (data is not None) and ('title' in data) and ('recipe' in data)
     if not is_data_valid:
@@ -78,10 +78,10 @@ def add_drink(payload):
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
 def update_drink(payload, drink_id):
-'''
+    '''
     This function handles updating an existing drink. 
     Permission: post:drinks
-'''
+    '''
     drink = Drink.query.get_or_404(drink_id)
     data = request.get_json()
     is_data_valid = (data is not None) and (('title' in data) or ('recipe' in data))
@@ -101,10 +101,10 @@ def update_drink(payload, drink_id):
 @app.route('/drinks/<int:drink_id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
 def delete_drink(payload, drink_id):
-'''
+    '''
     This function handles deleting an existing drink. 
     Permission: post:drinks
-'''
+    '''
     drink = Drink.query.get_or_404(drink_id)
     drink.delete()
 
@@ -113,9 +113,7 @@ def delete_drink(payload, drink_id):
         'delete': drink_id
     })
 ## Error Handling
-'''
-Example error handling for unprocessable entity
-'''
+
 @app.errorhandler(422)
 def unprocessable(error):
     return jsonify({
@@ -124,24 +122,26 @@ def unprocessable(error):
                     "message": "unprocessable"
                     }), 422
 
-'''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
-    each error handler should return (with approprate messages):
-             jsonify({
+@app.errorhandler(400)
+def unprocessable(error):
+    return jsonify({
+                    "success": False, 
+                    "error": 400,
+                    "message": "bad request"
+                    }), 400
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
                     "success": False, 
                     "error": 404,
-                    "message": "resource not found"
+                    "message": "not found"
                     }), 404
 
-'''
-
-'''
-@TODO implement error handler for 404
-    error handler should conform to general task above 
-'''
-
-
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above 
-'''
+@app.errorhandler(AuthError)
+def unauthorized(AuthError):
+    return jsonify({
+                    "success": False, 
+                    "error": AuthError.status_code,
+                    "message": AuthError.error
+                    }), AuthError.status_code
